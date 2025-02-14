@@ -1,0 +1,145 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                Int           @id @default(autoincrement())
+  nama              String
+  email             String        @unique
+  password          String
+  resetPasswordOtp  String?
+  resetOtpCreatedAt DateTime?
+  transactions      Transaction[] // Add relation to transactions
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+}
+
+model ProductType {
+  id        String    @id @default(uuid())
+  name      String    @unique // Add unique constraint
+  products  Product[]
+  sizes     Size[]    
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([name]) // Add index for faster lookups
+}
+
+model Category {
+  id        Int       @id @default(autoincrement())
+  nama      String    @unique // Add unique constraint
+  deskripsi String?
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([nama]) // Add index for faster lookups
+}
+
+model Product {
+  id            String            @id @default(uuid())
+  nama          String
+  deskripsi     String
+  hargaBeli     Float
+  hargaJual     Float
+  categoryId    Int
+  stock         Int              @default(0) // Add default value
+  minStock      Int              @default(0) // Add default value
+  image         String
+  category      Category         @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  productTypeId String
+  productType   ProductType      @relation(fields: [productTypeId], references: [id])
+  sizes         ProductSize[]
+  transactions  TransactionItem[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([categoryId, productTypeId])
+  @@index([nama]) // Add index for search operations
+}
+
+model Size {
+  id            String         @id @default(uuid())
+  label         String        // e.g., 'S', 'M', 'L', 'XS', etc.
+  productTypeId String
+  productType   ProductType   @relation(fields: [productTypeId], references: [id])
+  products      ProductSize[]
+  transactions  TransactionItem[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@unique([label, productTypeId]) // Prevent duplicate sizes for same product type
+  @@index([productTypeId])
+}
+
+model ProductSize {
+  id         String   @id @default(uuid())
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sizeId     String
+  size       Size     @relation(fields: [sizeId], references: [id], onDelete: Cascade)
+  quantity   Int      @default(0) // Add default value
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([productId, sizeId]) // Prevent duplicate product-size combinations
+  @@index([productId, sizeId])
+}
+
+enum PaymentMethod {
+  CASH
+  CREDIT_CARD
+  DEBIT_CARD
+  TRANSFER
+}
+
+model Customer {
+  id           String        @id @default(uuid())
+  nama         String
+  email        String?       @unique
+  phone        String?
+  transactions Transaction[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([email, phone]) // Add composite index for search operations
+}
+
+model Transaction {
+  id            String            @id @default(uuid())
+  customer      Customer?         @relation(fields: [customerId], references: [id])
+  customerId    String?
+  totalAmount   Float
+  paymentMethod PaymentMethod
+  items         TransactionItem[]
+  processedBy   User?            @relation(fields: [userId], references: [id])
+  userId        Int?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@index([customerId, createdAt]) // Add index for customer transaction history
+  @@index([userId, createdAt]) // Add index for user transaction history
+}
+
+model TransactionItem {
+  id            String      @id @default(uuid())
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  transactionId String
+  product       Product     @relation(fields: [productId], references: [id])
+  productId     String
+  size          Size        @relation(fields: [sizeId], references: [id])
+  sizeId        String
+  quantity      Int
+  hargaJual     Float       // Snapshot of price at time of sale
+  hargaBeli     Float       // Snapshot of cost at time of sale
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([transactionId])
+  @@index([productId, sizeId])
+}
