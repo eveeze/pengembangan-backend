@@ -8,26 +8,30 @@ datasource db {
 }
 
 model User {
-  id                Int           @id @default(autoincrement())
-  nama              String
-  email             String        @unique
-  password          String
-  resetPasswordOtp  String?
-  resetOtpCreatedAt DateTime?
-  transactions      Transaction[] // Add relation to transactions
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  id                       Int           @id @default(autoincrement())
+  nama                     String
+  email                    String        @unique
+  password                 String
+  isVerified               Boolean       @default(false)
+  isResetPasswordVerified  Boolean
+  verificationOtp          String?
+  verificationOtpCreatedAt DateTime?
+  resetPasswordOtp         String?
+  resetOtpCreatedAt        DateTime?
+  transactions             Transaction[] 
+  createdAt                DateTime      @default(now())
+  updatedAt                DateTime      @updatedAt
 }
 
 model ProductType {
   id        String    @id @default(uuid())
-  name      String    @unique // Add unique constraint
+  name      String    @unique 
   products  Product[]
   sizes     Size[]    
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  @@index([name]) // Add index for faster lookups
+  @@index([name]) 
 }
 
 model Category {
@@ -38,18 +42,18 @@ model Category {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  @@index([nama]) // Add index for faster lookups
+  @@index([nama]) 
 }
 
 model Product {
   id            String            @id @default(uuid())
   nama          String
-  deskripsi     String
+  deskripsi     String?
   hargaBeli     Float
   hargaJual     Float
   categoryId    Int
-  stock         Int              @default(0) // Add default value
-  minStock      Int              @default(0) // Add default value
+  stock         Int              @default(0) 
+  minStock      Int              @default(0) 
   image         String
   category      Category         @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   productTypeId String
@@ -60,12 +64,12 @@ model Product {
   updatedAt     DateTime         @updatedAt
 
   @@index([categoryId, productTypeId])
-  @@index([nama]) // Add index for search operations
+  @@index([nama]) 
 }
 
 model Size {
   id            String         @id @default(uuid())
-  label         String        // e.g., 'S', 'M', 'L', 'XS', etc.
+  label         String        
   productTypeId String
   productType   ProductType   @relation(fields: [productTypeId], references: [id])
   products      ProductSize[]
