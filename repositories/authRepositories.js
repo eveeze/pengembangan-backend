@@ -26,14 +26,25 @@ export const updateUserVerification = async (email) => {
   return user;
 };
 
-export const updateUserOTP = async (email, otp) => {
-  const user = await prisma.user.update({
-    where: { email },
-    data: {
-      otp,
-    },
-  });
-  return user;
+export const updateUserOTP = async (email, otp, isResetPassword = false) => {
+  if (isResetPassword) {
+    return await prisma.user.update({
+      where: { email },
+      data: {
+        resetPasswordOtp: otp,
+        resetOtpCreatedAt: new Date(),
+        isResetPasswordVerified: false,
+      },
+    });
+  } else {
+    return await prisma.user.update({
+      where: { email },
+      data: {
+        verificationOtp: otp,
+        verificationOtpCreatedAt: new Date(),
+      },
+    });
+  }
 };
 
 export const updateUserPassword = async (email, password) => {
@@ -41,7 +52,8 @@ export const updateUserPassword = async (email, password) => {
     where: { email },
     data: {
       password,
-      otp: null, 
+      resetPasswordOtp: null,
+      isResetPasswordVerified: false,
     },
   });
   return user;

@@ -36,13 +36,24 @@ model ProductType {
 
 model Category {
   id        Int       @id @default(autoincrement())
-  nama      String    @unique // Add unique constraint
+  nama      String    @unique
   deskripsi String?
   products  Product[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
   @@index([nama]) 
+}
+
+model Brand {
+  id        Int       @id @default(autoincrement())
+  nama      String    @unique
+  deskripsi String?
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([nama])
 }
 
 model Product {
@@ -52,19 +63,28 @@ model Product {
   hargaBeli     Float
   hargaJual     Float
   categoryId    Int
-  stock         Int              @default(0) 
-  minStock      Int              @default(0) 
+  brandId       Int
+  stock         Int               @default(0) 
+  minStock      Int               @default(0) 
   image         String
-  category      Category         @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  category      Category          @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  brand         Brand             @relation(fields: [brandId], references: [id], onDelete: Cascade)
   productTypeId String
-  productType   ProductType      @relation(fields: [productTypeId], references: [id])
+  productType   ProductType       @relation(fields: [productTypeId], references: [id])
   sizes         ProductSize[]
   transactions  TransactionItem[]
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+  kondisi       KondisiProduk     @default(BARU)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
 
-  @@index([categoryId, productTypeId])
+  @@index([categoryId, productTypeId, brandId])
   @@index([nama]) 
+}
+
+enum KondisiProduk {
+  BARU
+  BEKAS
+  REKONDISI
 }
 
 model Size {
@@ -77,7 +97,7 @@ model Size {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  @@unique([label, productTypeId]) // Prevent duplicate sizes for same product type
+  @@unique([label, productTypeId])
   @@index([productTypeId])
 }
 
@@ -87,11 +107,11 @@ model ProductSize {
   product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   sizeId     String
   size       Size     @relation(fields: [sizeId], references: [id], onDelete: Cascade)
-  quantity   Int      @default(0) // Add default value
+  quantity   Int      @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  @@unique([productId, sizeId]) // Prevent duplicate product-size combinations
+  @@unique([productId, sizeId])
   @@index([productId, sizeId])
 }
 
@@ -100,6 +120,7 @@ enum PaymentMethod {
   CREDIT_CARD
   DEBIT_CARD
   TRANSFER
+  DIGITAL_WALLET
 }
 
 model Customer {
@@ -107,11 +128,12 @@ model Customer {
   nama         String
   email        String?       @unique
   phone        String?
+  alamat       String?
   transactions Transaction[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
-  @@index([email, phone]) // Add composite index for search operations
+  @@index([email, phone])
 }
 
 model Transaction {
@@ -121,13 +143,15 @@ model Transaction {
   totalAmount   Float
   paymentMethod PaymentMethod
   items         TransactionItem[]
-  processedBy   User?            @relation(fields: [userId], references: [id])
+  processedBy   User?             @relation(fields: [userId], references: [id])
   userId        Int?
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+  diskon        Float             @default(0)
+  catatan       String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
 
-  @@index([customerId, createdAt]) // Add index for customer transaction history
-  @@index([userId, createdAt]) // Add index for user transaction history
+  @@index([customerId, createdAt])
+  @@index([userId, createdAt])
 }
 
 model TransactionItem {
@@ -139,8 +163,9 @@ model TransactionItem {
   size          Size        @relation(fields: [sizeId], references: [id])
   sizeId        String
   quantity      Int
-  hargaJual     Float       // Snapshot of price at time of sale
-  hargaBeli     Float       // Snapshot of cost at time of sale
+  hargaJual     Float
+  hargaBeli     Float
+  diskon        Float       @default(0)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 

@@ -12,6 +12,7 @@ import {
   generateOTP,
   sendResetPasswordEmail,
 } from "../utils/email.js";
+import prisma from "../config/prisma.js";
 
 const registerUser = async (req, res) => {
   try {
@@ -28,20 +29,23 @@ const registerUser = async (req, res) => {
     const salt = 10;
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    const createUser = await prisma.user.upsert({
+    await prisma.user.upsert({
       where: { email },
       update: {
         nama,
         password: hashedPassword,
-        otp,
+        verificationOtp: otp,
+        verificationOtpCreatedAt: new Date(),
         isVerified: false,
       },
       create: {
         nama,
         email,
         password: hashedPassword,
-        otp,
+        verificationOtp: otp,
+        verificationOtpCreatedAt: new Date(),
         isVerified: false,
+        isResetPasswordVerified: false,
       },
     });
 
@@ -87,9 +91,18 @@ const verifyOTP = async (req, res) => {
       });
     }
 
-    if (user.otp !== otp) {
+    if (user.verificationOtp !== otp) {
       return res.status(400).json({
         message: "OTP tidak valid",
+      });
+    }
+
+    const otpCreatedAt = user.verificationOtpCreatedAt;
+    const currentTime = new Date();
+    const timeDiff = (currentTime - otpCreatedAt) / (1000 * 60); // minutes
+    if (timeDiff > 5) {
+      return res.status(400).json({
+        message: "OTP sudah kadaluarsa",
       });
     }
 
@@ -151,60 +164,6 @@ const resendOTP = async (req, res) => {
   }
 };
 
-const login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({
-        message: "Email dan password harus diisi",
-      });
-    }
-
-    const user = await findUserByEmail(email);
-    if (!user) {
-      return res.status(404).json({
-        message: "Pengguna tidak ditemukan",
-      });
-    }
-
-    if (!user.isVerified) {
-      return res.status(401).json({
-        message:
-          "Akun belum terverifikasi, silahkan verifikasi terlebih dahulu",
-      });
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      return res.status(401).json({
-        message: "Password salah",
-      });
-    }
-
-    const token = jwt.sign(
-      { id: user.id, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    return res.status(200).json({
-      message: "Login berhasil",
-      token,
-      user: {
-        id: user.id,
-        nama: user.nama,
-        email: user.email,
-      },
-    });
-  } catch (err) {
-    console.log(err);
-    return res.status(500).json({
-      message: "Internal server error",
-    });
-  }
-};
-
 const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -230,7 +189,7 @@ const forgotPassword = async (req, res) => {
     }
 
     const resetOtp = generateOTP();
-    await updateUserOTP(email, resetOtp);
+    await updateUserOTP(email, resetOtp, true);
 
     try {
       await sendResetPasswordEmail(email, resetOtp);
@@ -268,11 +227,27 @@ const verifyResetOTP = async (req, res) => {
       });
     }
 
-    if (user.otp !== otp) {
+    if (user.resetPasswordOtp !== otp) {
       return res.status(400).json({
         message: "OTP tidak valid",
       });
     }
+
+    // Optional: Add OTP expiration check
+    const otpCreatedAt = user.resetOtpCreatedAt;
+    const currentTime = new Date();
+    const timeDiff = (currentTime - otpCreatedAt) / (1000 * 60); // minutes
+    if (timeDiff > 10) {
+      return res.status(400).json({
+        message: "OTP sudah kadaluarsa",
+      });
+    }
+
+    // Update user's reset password verification status
+    await prisma.user.update({
+      where: { email },
+      data: { isResetPasswordVerified: true },
+    });
 
     return res.status(200).json({
       message: "OTP valid, silahkan reset password anda",
@@ -302,7 +277,14 @@ const resetPassword = async (req, res) => {
       });
     }
 
-    if (user.otp !== otp) {
+    // Check if reset password OTP was verified
+    if (!user.isResetPasswordVerified) {
+      return res.status(400).json({
+        message: "Anda belum memverifikasi OTP reset password",
+      });
+    }
+
+    if (user.resetPasswordOtp !== otp) {
       return res.status(400).json({
         message: "OTP tidak valid",
       });
@@ -314,6 +296,60 @@ const resetPassword = async (req, res) => {
 
     return res.status(200).json({
       message: "Password berhasil direset, silahkan login",
+    });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
+
+const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        message: "Email dan password harus diisi",
+      });
+    }
+
+    const user = await findUserByEmail(email);
+    if (!user) {
+      return res.status(404).json({
+        message: "Pengguna tidak ditemukan",
+      });
+    }
+
+    if (!user.isVerified) {
+      return res.status(401).json({
+        message:
+          "Akun belum terverifikasi, silahkan verifikasi terlebih dahulu",
+      });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        message: "Password salah",
+      });
+    }
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" },
+    );
+
+    return res.status(200).json({
+      message: "Login berhasil",
+      token,
+      user: {
+        id: user.id,
+        nama: user.nama,
+        email: user.email,
+      },
     });
   } catch (err) {
     console.log(err);
