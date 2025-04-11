@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 
 // import routes
 import userRoutes from "./routes/authRoutes.js";
+import productTypeRoutes from "./routes/productTypeRoutes.js"
 
 dotenv.config();
 
@@ -13,10 +14,11 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/api/auth", userRoutes);
+app.use("/api/product-types", productTypeRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.get("/", (req, res) => {
-  res.send("WELCOME TO ALP SHOES SMARTSTOCK");
+  res.send("WELCOME TO APL SHOES SMARTSTOCK");
 });
 
 app.listen(PORT, () => {
