@@ -1,10 +1,14 @@
-import * as categoryRepository from "../repositories/categoryRepository.js";
+import * as categoryRepository from "../repositories/categoryRepositories.js";
 import { validationResult } from "express-validator";
 
 export const getAllCategories = async (req, res) => {
   try {
     const { search, limit, page } = req.query;
-    const result = await categoryRepository.getAllCategories({ search, limit, page });
+    const result = await categoryRepository.getAllCategories({
+      search,
+      limit,
+      page,
+    });
 
     return res.status(200).json({
       status: "success",
@@ -67,7 +71,10 @@ export const createCategory = async (req, res) => {
       });
     }
 
-    const category = await categoryRepository.createCategory({ nama, deskripsi });
+    const category = await categoryRepository.createCategory({
+      nama,
+      deskripsi,
+    });
 
     return res.status(201).json({
       status: "success",
@@ -113,7 +120,10 @@ export const updateCategory = async (req, res) => {
       });
     }
 
-    const category = await categoryRepository.updateCategory(id, { nama, deskripsi });
+    const category = await categoryRepository.updateCategory(id, {
+      nama,
+      deskripsi,
+    });
 
     return res.status(200).json({
       status: "success",
@@ -144,7 +154,8 @@ export const deleteCategory = async (req, res) => {
     if (existing._count.products > 0) {
       return res.status(400).json({
         status: "error",
-        message: "Kategori tidak dapat dihapus karena masih digunakan oleh produk",
+        message:
+          "Kategori tidak dapat dihapus karena masih digunakan oleh produk",
       });
     }
 
