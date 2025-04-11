@@ -1,3 +1,4 @@
+// routes/categoryRoutes.js
 import express from "express";
 import * as categoryController from "../controllers/categoryController.js";
 import authMiddleware from "../middlewares/authMiddleware.js";

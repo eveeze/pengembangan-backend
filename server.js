@@ -6,6 +6,8 @@ import dotenv from "dotenv";
 import userRoutes from "./routes/authRoutes.js";
 import productTypeRoutes from "./routes/productTypeRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
+import brandRoutes from "./routes/brandRoutes.js";
+import sizeRoutes from "./routes/sizeRoutes.js";
 dotenv.config();
 
 const app = express();
@@ -16,6 +18,8 @@ app.use(express.json());
 app.use("/api/auth", userRoutes);
 app.use("/api/product-types", productTypeRoutes);
 app.use("/api/category", categoryRoutes);
+app.use("/api/brand", brandRoutes);
+app.use("/api/size", sizeRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.get("/", (req, res) => {

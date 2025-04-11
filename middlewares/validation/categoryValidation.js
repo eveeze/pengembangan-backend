@@ -1,3 +1,4 @@
+// middlewares/validation/categoryValidation.js
 import { body } from "express-validator";
 
 export const validateCreateCategory = [

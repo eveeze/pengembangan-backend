@@ -1,3 +1,4 @@
+// controllers/categoryController.js
 import * as categoryRepository from "../repositories/categoryRepositories.js";
 import { validationResult } from "express-validator";
 
