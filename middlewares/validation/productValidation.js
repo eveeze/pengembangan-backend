@@ -11,5 +11,21 @@ export const validateCreateProduct = [
 ];
 
 export const validateUpdateProduct = [
-  ...validateCreateProduct,
+  body("nama").optional().notEmpty().withMessage("Nama produk wajib diisi"),
+  body("hargaBeli")
+    .optional()
+    .isFloat({ gt: 0 })
+    .withMessage("Harga beli harus lebih dari 0"),
+  body("hargaJual")
+    .optional()
+    .isFloat({ gt: 0 })
+    .withMessage("Harga jual harus lebih dari 0"),
+  body("categoryId").optional().notEmpty().withMessage("Kategori wajib diisi"),
+  body("brandId").optional().notEmpty().withMessage("Merek wajib diisi"),
+  body("productTypeId")
+    .optional()
+    .notEmpty()
+    .withMessage("Tipe produk wajib diisi"),
+  body("minStock").optional().isInt({ gt: -1 }).withMessage("Min stock tidak valid"),
+  body("kondisi").optional().isString().withMessage("Kondisi harus berupa teks"),
 ];

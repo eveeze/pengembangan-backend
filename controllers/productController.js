@@ -69,11 +69,37 @@ export const updateProduct = async (req, res) => {
     const existing = await productRepository.getProductById(id);
     if (!existing) return res.status(404).json({ status: "error", message: "Produk tidak ditemukan" });
 
+    // Fallback ke data lama jika data baru tidak ada
+    const {
+      nama = existing.nama,
+      deskripsi = existing.deskripsi,
+      hargaBeli = existing.hargaBeli,
+      hargaJual = existing.hargaJual,
+      categoryId = existing.categoryId,
+      brandId = existing.brandId,
+      productTypeId = existing.productTypeId,
+      minStock = existing.minStock,
+      kondisi = existing.kondisi,
+    } = req.body;
+
+    // Periksa apakah ada gambar baru
+    const image = req.file?.path || existing.image;
+
+    // Jika ada gambar baru, hapus gambar lama dari Cloudinary
     if (req.file?.path && existing.image) await deleteImage(existing.image);
 
+    // Update produk
     const updated = await productRepository.updateProduct(id, {
-      ...req.body,
-      image: req.file?.path || existing.image,
+      nama,
+      deskripsi,
+      hargaBeli: parseFloat(hargaBeli),
+      hargaJual: parseFloat(hargaJual),
+      categoryId: parseInt(categoryId),
+      brandId: parseInt(brandId),
+      productTypeId,
+      image,
+      minStock: parseInt(minStock),
+      kondisi,
     });
 
     return res.status(200).json({ status: "success", message: "Produk berhasil diperbarui", data: updated });

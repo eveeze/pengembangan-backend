@@ -8,8 +8,8 @@ import productTypeRoutes from "./routes/productTypeRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 import brandRoutes from "./routes/brandRoutes.js";
 import sizeRoutes from "./routes/sizeRoutes.js";
-import productSizeRoutes from "./routes/sizeRoutes.js";
-import productRoutes from "./routes/sizeRoutes.js";
+import productSizeRoutes from "./routes/productSizeRoutes.js";
+import productRoutes from "./routes/productRoutes.js";
 dotenv.config();
 
 const app = express();
