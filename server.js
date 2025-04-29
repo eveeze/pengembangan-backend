@@ -10,6 +10,9 @@ import brandRoutes from "./routes/brandRoutes.js";
 import sizeRoutes from "./routes/sizeRoutes.js";
 import productSizeRoutes from "./routes/productSizeRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
+import customerRoutes from "./routes/customerRoutes.js";
+import transactionRoutes from "./routes/transactionRoutes.js";
+import transactionItemRoutes from "./routes/transactionItemRoutes.js";
 dotenv.config();
 
 const app = express();
@@ -24,6 +27,9 @@ app.use("/api/brand", brandRoutes);
 app.use("/api/size", sizeRoutes);
 app.use("/api/product-size", productSizeRoutes)
 app.use("/api/product", productRoutes);
+app.use("/api/customer", customerRoutes);
+app.use("/api/transaction", transactionRoutes);
+app.use("/api/transaction-item", transactionItemRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.get("/", (req, res) => {
