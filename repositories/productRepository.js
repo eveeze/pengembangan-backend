@@ -1,83 +1,234 @@
 // repositories/productRepository.js
 import { PrismaClient } from "@prisma/client";
+import { updateProductTotalStock } from "./productSizeRepository.js";
+
 const prisma = new PrismaClient();
 
-export const getAllProducts = async ({ search, limit, page }) => {
-  const take = limit ? parseInt(limit) : undefined;
-  const skip = page && limit ? (parseInt(page) - 1) * parseInt(limit) : undefined;
+// Fungsi untuk memeriksa apakah nama produk sudah ada
+export const isProductNameExists = async (nama, excludeId = null) => {
+  const whereClause = { nama };
+  if (excludeId) {
+    whereClause.NOT = { id: excludeId };
+  }
+  const product = await prisma.product.findFirst({ where: whereClause });
+  return !!product;
+};
 
-  const where = search
-    ? { nama: { contains: search, mode: "insensitive" } }
-    : {};
+// Fungsi untuk mendapatkan semua produk dengan pagination dan pencarian
+export const getAllProducts = async ({ search = "", limit = 10, page = 1 }) => {
+  const skip = (parseInt(page) - 1) * parseInt(limit);
+  const take = parseInt(limit);
 
-  const [data, total] = await Promise.all([
+  const whereClause = {};
+  if (search) {
+    whereClause.OR = [
+      { nama: { contains: search, mode: "insensitive" } },
+      { deskripsi: { contains: search, mode: "insensitive" } },
+      { brand: { nama: { contains: search, mode: "insensitive" } } },
+      { category: { nama: { contains: search, mode: "insensitive" } } },
+    ];
+  }
+
+  const [products, total] = await Promise.all([
     prisma.product.findMany({
-      where,
-      take,
-      skip,
-      orderBy: { updatedAt: "desc" },
+      where: whereClause,
       include: {
-        brand: true,
         category: true,
+        brand: true,
         productType: true,
+        sizes: {
+          include: {
+            size: true,
+          },
+        },
         stockBatch: true,
-        sizes: { include: { size: true } },
       },
+      skip,
+      take,
+      orderBy: { createdAt: "desc" },
     }),
-    prisma.product.count({ where }),
+    prisma.product.count({ where: whereClause }),
   ]);
 
   return {
-    data,
-    meta: {
-      total,
-      page: page ? parseInt(page) : 1,
-      limit: limit ? parseInt(limit) : total,
-      totalPages: limit ? Math.ceil(total / parseInt(limit)) : 1,
+    data: products,
+    pagination: {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      totalItems: total,
+      totalPages: Math.ceil(total / parseInt(limit)),
     },
   };
 };
 
+// Fungsi untuk mendapatkan produk berdasarkan ID
 export const getProductById = async (id) => {
   return prisma.product.findUnique({
     where: { id },
     include: {
-      brand: true,
       category: true,
+      brand: true,
       productType: true,
+      sizes: {
+        include: {
+          size: true,
+        },
+      },
       stockBatch: true,
-      sizes: { include: { size: true } },
     },
   });
 };
 
-export const createProduct = async ({ sizes, ...data }) => {
-  return prisma.product.create({
-    data: {
-      ...data,
-      sizes: {
-        create: sizes,
+// Fungsi untuk membuat produk baru
+export const createProduct = async (data) => {
+  const { sizes = [], ...productData } = data;
+
+  return prisma.$transaction(async (tx) => {
+    // Buat produk baru dengan stock awal 0
+    const product = await tx.product.create({
+      data: {
+        ...productData,
+        stock: 0, // Stok awal 0, akan dihitung dari quantity sizes
+      },
+      include: {
+        category: true,
+        brand: true,
+        productType: true,
+        stockBatch: true,
+      },
+    });
+
+    // Tambahkan ukuran dan stok untuk produk
+    if (sizes.length > 0) {
+      for (const size of sizes) {
+        await tx.productSize.create({
+          data: {
+            productId: product.id,
+            sizeId: size.sizeId,
+            quantity: parseInt(size.quantity) || 0,
+          },
+        });
+      }
+
+      // Update total stok pada produk
+      await updateProductTotalStock(tx, product.id);
+    }
+
+    // Ambil produk lengkap dengan ukuran
+    return tx.product.findUnique({
+      where: { id: product.id },
+      include: {
+        category: true,
+        brand: true,
+        productType: true,
+        sizes: {
+          include: {
+            size: true,
+          },
+        },
+        stockBatch: true,
+      },
+    });
+  });
+};
+
+// Fungsi untuk mengupdate produk
+export const updateProduct = async (id, data) => {
+  const { sizes, ...productData } = data;
+
+  return prisma.$transaction(async (tx) => {
+    // Update data produk (tanpa mengubah stok)
+    const product = await tx.product.update({
+      where: { id },
+      data: productData,
+      include: {
+        category: true,
+        brand: true,
+        productType: true,
+        stockBatch: true,
+      },
+    });
+
+    // Jika sizes disediakan, update stok ukuran
+    if (sizes && sizes.length > 0) {
+      // Hapus semua ukuran yang ada
+      await tx.productSize.deleteMany({
+        where: { productId: id },
+      });
+
+      // Tambahkan ukuran baru
+      for (const size of sizes) {
+        await tx.productSize.create({
+          data: {
+            productId: id,
+            sizeId: size.sizeId,
+            quantity: parseInt(size.quantity) || 0,
+          },
+        });
+      }
+    }
+
+    // Update total stok pada produk
+    await updateProductTotalStock(tx, id);
+
+    // Ambil produk lengkap dengan ukuran
+    return tx.product.findUnique({
+      where: { id },
+      include: {
+        category: true,
+        brand: true,
+        productType: true,
+        sizes: {
+          include: {
+            size: true,
+          },
+        },
+        stockBatch: true,
+      },
+    });
+  });
+};
+
+// Fungsi untuk menghapus produk
+export const deleteProduct = async (id) => {
+  return prisma.$transaction(async (tx) => {
+    // Hapus semua ProductSize terkait
+    await tx.productSize.deleteMany({
+      where: { productId: id },
+    });
+
+    // Hapus produk
+    return tx.product.delete({
+      where: { id },
+    });
+  });
+};
+
+// Fungsi untuk mendapatkan produk dengan stok rendah
+export const getLowStockProducts = async () => {
+  return prisma.product.findMany({
+    where: {
+      stock: {
+        lte: prisma.product.fields.minStock,
       },
     },
     include: {
-      sizes: true,
+      category: true,
+      brand: true,
+      sizes: {
+        include: {
+          size: true,
+        },
+      },
     },
   });
 };
 
-export const updateProduct = async (id, data) => {
-  // Sederhana: tidak memperbarui ukuran lama. Untuk update ukuran, kamu bisa hapus dan tambah ulang.
+// Fungsi untuk mengupdate stok produk langsung (tanpa melalui ProductSize)
+// Fungsi ini sebaiknya hanya digunakan untuk keperluan admin/perbaikan data
+export const updateProductStock = async (id, stock) => {
   return prisma.product.update({
     where: { id },
-    data,
+    data: { stock: parseInt(stock) },
   });
-};
-
-export const deleteProduct = async (id) => {
-  return prisma.product.delete({ where: { id } });
-};
-
-export const isProductNameExists = async (nama) => {
-  const count = await prisma.product.count({ where: { nama } });
-  return count > 0;
 };

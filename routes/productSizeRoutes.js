@@ -14,8 +14,20 @@ router.get("/:id", productSizeController.getProductSizeById);
 
 router.use(authMiddleware.verifyToken);
 
-router.post("/", validateCreateProductSize, productSizeController.createProductSize);
-router.put("/:id", validateUpdateProductSize, productSizeController.updateProductSize);
+router.post(
+  "/",
+  validateCreateProductSize,
+  productSizeController.createProductSize
+);
+router.put(
+  "/:id",
+  validateUpdateProductSize,
+  productSizeController.updateProductSize
+);
 router.delete("/:id", productSizeController.deleteProductSize);
-
+router.get(
+  "/product/:productId/size/:sizeId",
+  productSizeController.getProductSizeStock
+);
+router.post("/sync", productSizeController.syncAllProductStocks);
 export default router;

@@ -2,30 +2,80 @@
 import { body } from "express-validator";
 
 export const validateCreateProduct = [
-  body("nama").notEmpty().withMessage("Nama produk wajib diisi"),
-  body("hargaBeli").isFloat({ gt: 0 }).withMessage("Harga beli harus lebih dari 0"),
-  body("hargaJual").isFloat({ gt: 0 }).withMessage("Harga jual harus lebih dari 0"),
-  body("categoryId").notEmpty().withMessage("Kategori wajib diisi"),
-  body("brandId").notEmpty().withMessage("Merek wajib diisi"),
-  body("productTypeId").notEmpty().withMessage("Tipe produk wajib diisi"),
-  body("kondisi").optional().isIn(["BARU", "BEKAS", "REKONDISI"]),
-  body("stockBatchId").optional().isUUID().withMessage("StockBatch ID tidak valid"),
-  body("sizes").optional().isArray(),
-  body("sizes.*.sizeId").isUUID().withMessage("Size ID tidak valid"),
-  body("sizes.*.quantity").isInt({ min: 0 }).withMessage("Quantity harus bilangan bulat positif"),
+  body("nama").notEmpty().withMessage("Nama produk harus diisi"),
+  body("hargaBeli")
+    .isFloat({ min: 0 })
+    .withMessage("Harga beli harus berupa angka positif"),
+  body("hargaJual")
+    .isFloat({ min: 0 })
+    .withMessage("Harga jual harus berupa angka positif"),
+  body("categoryId").isInt({ min: 1 }).withMessage("Kategori harus dipilih"),
+  body("brandId").isInt({ min: 1 }).withMessage("Brand harus dipilih"),
+  body("productTypeId").notEmpty().withMessage("Tipe produk harus dipilih"),
+  body("minStock")
+    .optional()
+    .isInt({ min: 0 })
+    .withMessage("Minimum stok harus berupa angka positif"),
+  body("kondisi")
+    .optional()
+    .isIn(["BARU", "BEKAS", "REKONDISI"])
+    .withMessage("Kondisi harus berupa BARU, BEKAS, atau REKONDISI"),
+  body("sizes.*.sizeId")
+    .optional()
+    .notEmpty()
+    .withMessage("ID ukuran harus diisi"),
+  body("sizes.*.quantity")
+    .optional()
+    .isInt({ min: 0 })
+    .withMessage("Jumlah stok harus berupa angka positif"),
 ];
 
 export const validateUpdateProduct = [
-  body("nama").optional().notEmpty().withMessage("Nama produk wajib diisi"),
-  body("hargaBeli").optional().isFloat({ gt: 0 }),
-  body("hargaJual").optional().isFloat({ gt: 0 }),
-  body("categoryId").optional().notEmpty(),
-  body("brandId").optional().notEmpty(),
-  body("productTypeId").optional().notEmpty(),
-  body("minStock").optional().isInt({ gt: -1 }),
-  body("kondisi").optional().isIn(["BARU", "BEKAS", "REKONDISI"]),
-  body("stockBatchId").optional().isUUID(),
-  body("sizes").optional().isArray(),
-  body("sizes.*.sizeId").optional().isUUID(),
-  body("sizes.*.quantity").optional().isInt({ min: 0 }),
+  body("nama")
+    .optional()
+    .notEmpty()
+    .withMessage("Nama produk tidak boleh kosong"),
+  body("hargaBeli")
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage("Harga beli harus berupa angka positif"),
+  body("hargaJual")
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage("Harga jual harus berupa angka positif"),
+  body("categoryId")
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage("Kategori harus dipilih"),
+  body("brandId")
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage("Brand harus dipilih"),
+  body("productTypeId")
+    .optional()
+    .notEmpty()
+    .withMessage("Tipe produk harus dipilih"),
+  body("minStock")
+    .optional()
+    .isInt({ min: 0 })
+    .withMessage("Minimum stok harus berupa angka positif"),
+  body("kondisi")
+    .optional()
+    .isIn(["BARU", "BEKAS", "REKONDISI"])
+    .withMessage("Kondisi harus berupa BARU, BEKAS, atau REKONDISI"),
+  body("sizes.*.sizeId")
+    .optional()
+    .notEmpty()
+    .withMessage("ID ukuran harus diisi"),
+  body("sizes.*.quantity")
+    .optional()
+    .isInt({ min: 0 })
+    .withMessage("Jumlah stok harus berupa angka positif"),
+];
+
+export const validateProductSize = [
+  body("sizeId").notEmpty().withMessage("ID ukuran harus diisi"),
+  body("quantity")
+    .isInt({ min: 0 })
+    .withMessage("Jumlah stok harus berupa angka positif"),
 ];

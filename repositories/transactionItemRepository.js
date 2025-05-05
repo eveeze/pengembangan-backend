@@ -2,60 +2,58 @@
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
-export const findAll = async () => {
-  return await prisma.transactionItem.findMany({
-    orderBy: { createdAt: "desc" },
+/**
+ * Mendapatkan semua item transaksi
+ */
+export const getAllTransactionItems = async () => {
+  return prisma.transactionItem.findMany({
     include: {
-      product: true,
-      size: true,
-      transaction: true,
-    },
-  });
-};
-
-export const findById = async (id) => {
-  return await prisma.transactionItem.findUnique({
-    where: { id },
-    include: {
-      product: true,
-      size: true,
-      transaction: true,
-    },
-  });
-};
-
-export const create = async (data) => {
-  const newItem = await prisma.transactionItem.create({
-    data,
-  });
-
-  // Kurangi stok setelah create item
-  await prisma.productSize.updateMany({
-    where: {
-      productId: data.productId,
-      sizeId: data.sizeId,
-    },
-    data: {
-      quantity: {
-        decrement: data.quantity,
+      product: {
+        include: {
+          brand: true,
+          category: true,
+        },
       },
+      size: true,
+      transaction: true,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+};
+
+/**
+ * Mendapatkan item transaksi berdasarkan ID
+ */
+export const getTransactionItemById = async (id) => {
+  return prisma.transactionItem.findUnique({
+    where: { id },
+    include: {
+      product: {
+        include: {
+          brand: true,
+          category: true,
+        },
+      },
+      size: true,
+      transaction: true,
     },
   });
-
-  return newItem;
 };
 
-export const update = async (id, data) => {
-  // (Untuk sekarang update item tanpa adjust stok, bisa diimprove di Tahap 4)
-  return await prisma.transactionItem.update({
-    where: { id },
-    data,
-  });
-};
-
-export const remove = async (id) => {
-  // (Untuk sekarang hapus item tanpa rollback stok, bisa diimprove di Tahap 4)
-  return await prisma.transactionItem.delete({
-    where: { id },
+/**
+ * Mendapatkan semua item transaksi berdasarkan ID transaksi
+ */
+export const getItemsByTransactionId = async (transactionId) => {
+  return prisma.transactionItem.findMany({
+    where: { transactionId },
+    include: {
+      product: {
+        include: {
+          brand: true,
+          category: true,
+        },
+      },
+      size: true,
+    },
   });
 };
