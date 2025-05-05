@@ -11,7 +11,7 @@ export const getAllSizes = async ({ search, limit, page, productTypeId }) => {
   if (productTypeId) where.productTypeId = productTypeId;
 
   const [data, total] = await Promise.all([
-    prisma.size.findMany({ where, take, skip, orderBy: { label: "asc" }, include: { _count: true } }),
+    prisma.size.findMany({ where, take, skip, orderBy: { label: "asc" }, include: { _count: true, productType: true, } }),
     prisma.size.count({ where }),
   ]);
 

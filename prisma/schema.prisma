@@ -32,6 +32,7 @@ model User {
 model ProductType {
   id        String    @id @default(uuid()) // ID unik tipe produk (UUID)
   name      String    @unique // Nama tipe produk (harus unik)
+  category  Category[]
   products  Product[] // Relasi ke produk-produk dengan tipe ini
   sizes     Size[] // Relasi ke ukuran yang tersedia untuk tipe ini
   createdAt DateTime  @default(now()) // Waktu pembuatan data
@@ -48,6 +49,8 @@ model Category {
   id        Int       @id @default(autoincrement()) // ID unik kategori (auto-increment)
   nama      String    @unique // Nama kategori (harus unik)
   deskripsi String? // Deskripsi kategori (opsional)
+  productTypeId String       // FK ke ProductType
+  productType   ProductType  @relation(fields: [productTypeId], references: [id])
   products  Product[] // Relasi ke produk-produk dalam kategori ini
   createdAt DateTime  @default(now()) // Waktu pembuatan data
   updatedAt DateTime  @updatedAt // Waktu terakhir update data

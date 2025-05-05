@@ -1,3 +1,4 @@
+// repositories/authRepositories.js
 import prisma from "../config/prisma.js";
 
 export const findUserById = async (id) => {

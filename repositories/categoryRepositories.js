@@ -48,13 +48,17 @@ export const getCategoryById = async (id) => {
 };
 
 export const createCategory = async (data) => {
-  return prisma.category.create({ data });
+  return prisma.category.create({
+    data,
+    include: { productType: true, _count: { select: { products: true } } },
+  });
 };
 
 export const updateCategory = async (id, data) => {
   return prisma.category.update({
     where: { id: parseInt(id) },
     data,
+    include: { productType: true, _count: { select: { products: true } } },
   });
 };
 

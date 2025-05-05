@@ -62,7 +62,7 @@ export const createCategory = async (req, res) => {
       });
     }
 
-    const { nama, deskripsi } = req.body;
+    const { nama, deskripsi, productTypeId } = req.body;
 
     const exists = await categoryRepository.isCategoryNameExists(nama);
     if (exists) {
@@ -75,6 +75,7 @@ export const createCategory = async (req, res) => {
     const category = await categoryRepository.createCategory({
       nama,
       deskripsi,
+      productTypeId,
     });
 
     return res.status(201).json({
@@ -103,7 +104,7 @@ export const updateCategory = async (req, res) => {
     }
 
     const { id } = req.params;
-    const { nama, deskripsi } = req.body;
+    const { nama, deskripsi, productTypeId } = req.body;
 
     const existing = await categoryRepository.getCategoryById(id);
     if (!existing) {
@@ -124,6 +125,7 @@ export const updateCategory = async (req, res) => {
     const category = await categoryRepository.updateCategory(id, {
       nama,
       deskripsi,
+      productTypeId,
     });
 
     return res.status(200).json({

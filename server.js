@@ -38,6 +38,8 @@ app.get("/", (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`server sedang berjalan di port ${PORT}`);
+  console.log('✅ Email User:', process.env.EMAIL_USER);
+  console.log('✅ Email Password:', process.env.EMAIL_PASSWORD ? 'Loaded' : 'Not loaded');
 });
 
 export default app;

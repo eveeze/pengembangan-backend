@@ -1,3 +1,4 @@
+// utils/email.js
 import nodemailer from "nodemailer";
 import fs from "fs";
 import path, { dirname, join } from "path";
