@@ -95,6 +95,8 @@ model Product {
   sizes         ProductSize[] // Relasi ke ukuran-ukuran produk
   transactions  TransactionItem[] // Relasi ke transaksi item
   kondisi       KondisiProduk     @default(BARU) // Kondisi produk (BARU, BEKAS, REKONDISI)
+  stockBatchId  String?           // FK ke StockBatch (opsional)
+  stockBatch    StockBatch?       @relation(fields: [stockBatchId], references: [id])
   createdAt     DateTime          @default(now()) // Waktu pembuatan data
   updatedAt     DateTime          @updatedAt // Waktu terakhir update data
 
@@ -147,6 +149,20 @@ model ProductSize {
   @@unique([productId, sizeId]) // Kombinasi produk dan ukuran harus unik
   @@index([productId, sizeId]) // Index gabungan
 }
+
+// Model StockBatch: Menyimpan informasi batch stok produk
+model StockBatch {
+  id           String    @id @default(uuid()) // ID unik batch (UUID)
+  nama         String    // Nama batch (misal: "Karung April 2025")
+  totalHarga   Float     // Total harga karung batch (misal: 10_000_000)
+  jumlahSepatu Int       // Jumlah sepatu dalam batch
+  products     Product[] // Relasi ke produk-produk yang berasal dari batch ini
+  createdAt    DateTime  @default(now()) // Waktu pembuatan data
+  updatedAt    DateTime  @updatedAt // Waktu terakhir update data
+
+  // Fungsi: Mengelompokkan produk yang berasal dari satu batch stok
+}
+
 
 // Enum PaymentMethod: Mendefinisikan metode pembayaran
 enum PaymentMethod {

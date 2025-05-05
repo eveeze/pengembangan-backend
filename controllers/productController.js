@@ -41,13 +41,26 @@ export const createProduct = async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ status: "error", message: "Validasi gagal", errors: errors.array() });
 
-    const { nama, deskripsi, hargaBeli, hargaJual, categoryId, brandId, productTypeId, minStock = 0, kondisi = "BARU" } = req.body;
+    const { nama, deskripsi, hargaBeli, hargaJual, categoryId, brandId, productTypeId, minStock = 0, kondisi = "BARU", stockBatchId, sizes = [] } = req.body;
     const image = req.file?.path;
 
     const nameExists = await productRepository.isProductNameExists(nama);
     if (nameExists) return res.status(400).json({ status: "error", message: "Nama produk sudah digunakan" });
 
-    const product = await productRepository.createProduct({ nama, deskripsi, hargaBeli: parseFloat(hargaBeli), hargaJual: parseFloat(hargaJual), categoryId: parseInt(categoryId), brandId: parseInt(brandId), productTypeId, image, minStock: parseInt(minStock), kondisi });
+    const product = await productRepository.createProduct({
+      nama,
+      deskripsi,
+      hargaBeli: parseFloat(hargaBeli),
+      hargaJual: parseFloat(hargaJual),
+      categoryId: parseInt(categoryId),
+      brandId: parseInt(brandId),
+      productTypeId,
+      image,
+      minStock: parseInt(minStock),
+      kondisi,
+      stockBatchId,
+      sizes: sizes.map((s) => ({ sizeId: s.sizeId, quantity: s.quantity })),
+    });
 
     return res.status(201).json({
       status: "success",
@@ -69,7 +82,6 @@ export const updateProduct = async (req, res) => {
     const existing = await productRepository.getProductById(id);
     if (!existing) return res.status(404).json({ status: "error", message: "Produk tidak ditemukan" });
 
-    // Fallback ke data lama jika data baru tidak ada
     const {
       nama = existing.nama,
       deskripsi = existing.deskripsi,
@@ -80,15 +92,13 @@ export const updateProduct = async (req, res) => {
       productTypeId = existing.productTypeId,
       minStock = existing.minStock,
       kondisi = existing.kondisi,
+      stockBatchId = existing.stockBatchId,
+      // sizes = [],
     } = req.body;
 
-    // Periksa apakah ada gambar baru
     const image = req.file?.path || existing.image;
-
-    // Jika ada gambar baru, hapus gambar lama dari Cloudinary
     if (req.file?.path && existing.image) await deleteImage(existing.image);
 
-    // Update produk
     const updated = await productRepository.updateProduct(id, {
       nama,
       deskripsi,
@@ -100,6 +110,8 @@ export const updateProduct = async (req, res) => {
       image,
       minStock: parseInt(minStock),
       kondisi,
+      stockBatchId,
+      // sizes,
     });
 
     return res.status(200).json({ status: "success", message: "Produk berhasil diperbarui", data: updated });

@@ -7,12 +7,7 @@ export const getAllProducts = async ({ search, limit, page }) => {
   const skip = page && limit ? (parseInt(page) - 1) * parseInt(limit) : undefined;
 
   const where = search
-    ? {
-        nama: {
-          contains: search,
-          mode: "insensitive",
-        },
-      }
+    ? { nama: { contains: search, mode: "insensitive" } }
     : {};
 
   const [data, total] = await Promise.all([
@@ -21,6 +16,13 @@ export const getAllProducts = async ({ search, limit, page }) => {
       take,
       skip,
       orderBy: { updatedAt: "desc" },
+      include: {
+        brand: true,
+        category: true,
+        productType: true,
+        stockBatch: true,
+        sizes: { include: { size: true } },
+      },
     }),
     prisma.product.count({ where }),
   ]);
@@ -39,14 +41,32 @@ export const getAllProducts = async ({ search, limit, page }) => {
 export const getProductById = async (id) => {
   return prisma.product.findUnique({
     where: { id },
+    include: {
+      brand: true,
+      category: true,
+      productType: true,
+      stockBatch: true,
+      sizes: { include: { size: true } },
+    },
   });
 };
 
-export const createProduct = async (data) => {
-  return prisma.product.create({ data });
+export const createProduct = async ({ sizes, ...data }) => {
+  return prisma.product.create({
+    data: {
+      ...data,
+      sizes: {
+        create: sizes,
+      },
+    },
+    include: {
+      sizes: true,
+    },
+  });
 };
 
 export const updateProduct = async (id, data) => {
+  // Sederhana: tidak memperbarui ukuran lama. Untuk update ukuran, kamu bisa hapus dan tambah ulang.
   return prisma.product.update({
     where: { id },
     data,
@@ -54,9 +74,7 @@ export const updateProduct = async (id, data) => {
 };
 
 export const deleteProduct = async (id) => {
-  return prisma.product.delete({
-    where: { id },
-  });
+  return prisma.product.delete({ where: { id } });
 };
 
 export const isProductNameExists = async (nama) => {

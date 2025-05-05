@@ -10,6 +10,7 @@ import brandRoutes from "./routes/brandRoutes.js";
 import sizeRoutes from "./routes/sizeRoutes.js";
 import productSizeRoutes from "./routes/productSizeRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
+import stockBatchRoutes from "./routes/stockBatchRoutes.js";
 import customerRoutes from "./routes/customerRoutes.js";
 import transactionRoutes from "./routes/transactionRoutes.js";
 import transactionItemRoutes from "./routes/transactionItemRoutes.js";
@@ -25,8 +26,9 @@ app.use("/api/product-types", productTypeRoutes);
 app.use("/api/category", categoryRoutes);
 app.use("/api/brand", brandRoutes);
 app.use("/api/size", sizeRoutes);
-app.use("/api/product-size", productSizeRoutes)
+app.use("/api/product-size", productSizeRoutes);
 app.use("/api/product", productRoutes);
+app.use("/api/stock-batch", stockBatchRoutes);
 app.use("/api/customer", customerRoutes);
 app.use("/api/transaction", transactionRoutes);
 app.use("/api/transaction-item", transactionItemRoutes);
