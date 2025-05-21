@@ -9,11 +9,17 @@ export const createTransaction = async (transactionData, items) => {
     // 1. Buat transaksi baru
     const transaction = await tx.transaction.create({
       data: {
-        customerId: transactionData.customerId,
+        // Menggunakan connect untuk customer jika customerId ada
+        ...(transactionData.customerId ? {
+          customer: { connect: { id: transactionData.customerId } }
+        } : {}),
+        // Menggunakan connect untuk user
+        ...(transactionData.userId ? {
+          processedBy: { connect: { id: transactionData.userId } }
+        } : {}),
         totalAmount: transactionData.totalAmount,
         profit: transactionData.profit,
         paymentMethod: transactionData.paymentMethod,
-        userId: transactionData.userId,
         diskon: transactionData.diskon,
         catatan: transactionData.catatan,
         items: {

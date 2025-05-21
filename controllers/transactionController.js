@@ -1,3 +1,4 @@
+// controllers/transactionController.js
 import { validationResult } from "express-validator";
 import * as transactionRepo from "../repositories/transactionRepository.js";
 import { getProductSizeStock } from "../repositories/productSizeRepository.js";

@@ -6,11 +6,15 @@ import { deleteImage } from "../utils/cloudinary.js";
 
 export const getAllProducts = async (req, res) => {
   try {
-    const { search, limit, page } = req.query;
+    const { search, limit, page, brandId, categoryId, productTypeId } = req.query;
+
     const result = await productRepository.getAllProducts({
       search,
       limit,
       page,
+      brandId,
+      categoryId,
+      productTypeId,
     });
 
     return res.status(200).json({
@@ -20,20 +24,17 @@ export const getAllProducts = async (req, res) => {
     });
   } catch (error) {
     console.error("Error getAllProducts:", error);
-    return res
-      .status(500)
-      .json({ status: "error", message: "Gagal mengambil produk" });
+    return res.status(500).json({ status: "error", message: "Gagal mengambil produk" });
   }
 };
+
 
 export const getProductById = async (req, res) => {
   try {
     const { id } = req.params;
     const product = await productRepository.getProductById(id);
     if (!product)
-      return res
-        .status(404)
-        .json({ status: "error", message: "Produk tidak ditemukan" });
+      return res.status(404).json({ status: "error", message: "Produk tidak ditemukan" });
 
     return res.status(200).json({
       status: "success",
@@ -42,9 +43,7 @@ export const getProductById = async (req, res) => {
     });
   } catch (error) {
     console.error("Error getProductById:", error);
-    return res
-      .status(500)
-      .json({ status: "error", message: "Gagal mengambil detail produk" });
+    return res.status(500).json({ status: "error", message: "Gagal mengambil detail produk" });
   }
 };
 
@@ -52,15 +51,13 @@ export const createProduct = async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty())
-      return res
-        .status(400)
-        .json({
-          status: "error",
-          message: "Validasi gagal",
-          errors: errors.array(),
-        });
+      return res.status(400).json({
+        status: "error",
+        message: "Validasi gagal",
+        errors: errors.array(),
+      });
 
-    const {
+    let {
       nama,
       deskripsi,
       hargaBeli,
@@ -75,11 +72,20 @@ export const createProduct = async (req, res) => {
     } = req.body;
     const image = req.file?.path;
 
+    if (typeof sizes === "string") {
+      try {
+        sizes = JSON.parse(sizes);
+      } catch (e) {
+        return res.status(400).json({
+          status: "error",
+          message: "Format sizes tidak valid. Harus berupa array JSON.",
+        });
+      }
+    }
+
     const nameExists = await productRepository.isProductNameExists(nama);
     if (nameExists)
-      return res
-        .status(400)
-        .json({ status: "error", message: "Nama produk sudah digunakan" });
+      return res.status(400).json({ status: "error", message: "Nama produk sudah digunakan" });
 
     const product = await productRepository.createProduct({
       nama,
@@ -92,7 +98,7 @@ export const createProduct = async (req, res) => {
       image,
       minStock: parseInt(minStock),
       kondisi,
-      stockBatchId,
+      stockBatchId: stockBatchId && stockBatchId.trim() !== "" ? stockBatchId : null,
       sizes: sizes.map((s) => ({
         sizeId: s.sizeId,
         quantity: parseInt(s.quantity) || 0,
@@ -106,9 +112,7 @@ export const createProduct = async (req, res) => {
     });
   } catch (error) {
     console.error("Error createProduct:", error);
-    return res
-      .status(500)
-      .json({ status: "error", message: "Gagal menambahkan produk" });
+    return res.status(500).json({ status: "error", message: "Gagal menambahkan produk" });
   }
 };
 

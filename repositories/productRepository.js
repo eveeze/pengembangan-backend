@@ -15,11 +15,12 @@ export const isProductNameExists = async (nama, excludeId = null) => {
 };
 
 // Fungsi untuk mendapatkan semua produk dengan pagination dan pencarian
-export const getAllProducts = async ({ search = "", limit = 10, page = 1 }) => {
+export const getAllProducts = async ({ search = "", limit = 10, page = 1, brandId, categoryId, productTypeId }) => {
   const skip = (parseInt(page) - 1) * parseInt(limit);
   const take = parseInt(limit);
 
   const whereClause = {};
+
   if (search) {
     whereClause.OR = [
       { nama: { contains: search, mode: "insensitive" } },
@@ -28,6 +29,11 @@ export const getAllProducts = async ({ search = "", limit = 10, page = 1 }) => {
       { category: { nama: { contains: search, mode: "insensitive" } } },
     ];
   }
+
+  // Tambahkan filter tambahan jika tersedia
+  if (brandId) whereClause.brandId = parseInt(brandId);
+  if (categoryId) whereClause.categoryId = parseInt(categoryId);
+  if (productTypeId) whereClause.productTypeId = productTypeId;
 
   const [products, total] = await Promise.all([
     prisma.product.findMany({
@@ -60,6 +66,7 @@ export const getAllProducts = async ({ search = "", limit = 10, page = 1 }) => {
     },
   };
 };
+
 
 // Fungsi untuk mendapatkan produk berdasarkan ID
 export const getProductById = async (id) => {
