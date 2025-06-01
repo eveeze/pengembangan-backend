@@ -14,8 +14,8 @@ router.use(authMiddleware.verifyToken);
 
 // Route CRUD stock batch
 router.get("/", stockBatchController.getAllStockBatches);
-router.get("/:id", stockBatchController.getStockBatchById);
 router.post("/", validateCreateStockBatch, stockBatchController.createStockBatch);
+router.get("/:id", stockBatchController.getStockBatchById);
 router.put("/:id", validateUpdateStockBatch, stockBatchController.updateStockBatch);
 router.delete("/:id", stockBatchController.deleteStockBatch);
 
