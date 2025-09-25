@@ -1,5 +1,7 @@
-// repositories/productSizeRepository.js
 import { PrismaClient } from "@prisma/client";
+// 1. IMPORT YANG SEBELUMNYA HILANG ADA DI SINI
+import * as auditLogRepository from "./auditLogRepository.js";
+
 const prisma = new PrismaClient();
 
 // Fungsi untuk mendapatkan semua kombinasi produk-ukuran
@@ -62,132 +64,149 @@ export const getProductSizeStock = async (productId, sizeId) => {
 };
 
 // Fungsi untuk membuat kombinasi produk-ukuran baru
-export const createProductSize = async (data) => {
+export const createProductSize = async (data, userId) => {
   const { productId, sizeId, quantity } = data;
-
-  // Transaksi database untuk memastikan konsistensi data
   return prisma.$transaction(async (tx) => {
-    // Buat entry ProductSize baru
     const productSize = await tx.productSize.create({
-      data: {
-        productId,
-        sizeId,
-        quantity,
-      },
+      data: { productId, sizeId, quantity },
       include: {
-        product: {
-          select: {
-            id: true,
-            nama: true,
-          },
-        },
+        product: { select: { id: true, nama: true } },
         size: true,
       },
     });
-
-    // Update total stok pada produk
     await updateProductTotalStock(tx, productId);
-
+    if (userId) {
+      await auditLogRepository.createLog({
+        userId,
+        action: "CREATE",
+        entity: "ProductSize",
+        entityId: productSize.id,
+        changes: {
+          before: { quantity: 0 },
+          after: { quantity: quantity },
+          details: `Menambah ukuran '${productSize.size.label}' ke produk '${productSize.product.nama}'`,
+        },
+      });
+    }
     return productSize;
   });
 };
 
 // Fungsi untuk mengupdate kombinasi produk-ukuran
-export const updateProductSize = async (id, data) => {
+export const updateProductSize = async (id, data, userId) => {
   const { quantity } = data;
-  const productSize = await prisma.productSize.findUnique({
-    where: { id },
-    select: { productId: true },
-  });
-
-  // Transaksi database untuk memastikan konsistensi data
   return prisma.$transaction(async (tx) => {
-    // Update entry ProductSize
-    const updated = await tx.productSize.update({
+    const oldProductSize = await tx.productSize.findUnique({
       where: { id },
-      data: { quantity },
       include: {
-        product: {
-          select: {
-            id: true,
-            nama: true,
-          },
-        },
+        product: { select: { id: true, nama: true } },
         size: true,
       },
     });
-
-    // Update total stok pada produk
-    await updateProductTotalStock(tx, productSize.productId);
-
+    if (!oldProductSize) throw new Error("ProductSize tidak ditemukan.");
+    const updated = await tx.productSize.update({
+      where: { id },
+      data: { quantity },
+    });
+    await updateProductTotalStock(tx, oldProductSize.productId);
+    
+    // 2. KODE DI BAWAH INI MEMANGGIL IMPORT DI ATAS
+    if (userId && oldProductSize.quantity !== quantity) {
+      await auditLogRepository.createLog({
+        userId,
+        action: "UPDATE",
+        entity: "ProductSize",
+        entityId: id,
+        changes: {
+          before: { quantity: oldProductSize.quantity },
+          after: { quantity: quantity },
+          details: `Stok produk '${oldProductSize.product.nama}' ukuran '${oldProductSize.size.label}' diubah`,
+        },
+      });
+    }
     return updated;
   });
 };
 
 // Fungsi untuk menghapus kombinasi produk-ukuran
-export const deleteProductSize = async (id) => {
-  const productSize = await prisma.productSize.findUnique({
-    where: { id },
-    select: { productId: true },
-  });
-
-  // Transaksi database untuk memastikan konsistensi data
+export const deleteProductSize = async (id, userId) => {
   return prisma.$transaction(async (tx) => {
-    // Hapus entry ProductSize
-    await tx.productSize.delete({
+    const oldProductSize = await tx.productSize.findUnique({
       where: { id },
+      include: {
+        product: { select: { id: true, nama: true } },
+        size: true,
+      },
     });
-
-    // Update total stok pada produk
-    await updateProductTotalStock(tx, productSize.productId);
+    if (!oldProductSize) throw new Error("ProductSize tidak ditemukan.");
+    await tx.productSize.delete({ where: { id } });
+    await updateProductTotalStock(tx, oldProductSize.productId);
+    if (userId) {
+      await auditLogRepository.createLog({
+        userId,
+        action: "DELETE",
+        entity: "ProductSize",
+        entityId: id,
+        changes: {
+          before: { quantity: oldProductSize.quantity },
+          after: { quantity: 0 },
+          details: `Ukuran '${oldProductSize.size.label}' dihapus dari produk '${oldProductSize.product.nama}'`,
+        },
+      });
+    }
   });
 };
 
 // Fungsi untuk mengupdate stok setelah transaksi
-export const updateStockAfterTransaction = async (items, isCreate = true) => {
+export const updateStockAfterTransaction = async (
+  items,
+  isCreate = true,
+  userId
+) => {
   return prisma.$transaction(async (tx) => {
     for (const item of items) {
       const { productId, sizeId, quantity } = item;
-
-      // Cari ProductSize
       const productSize = await tx.productSize.findFirst({
-        where: {
-          productId,
-          sizeId,
-        },
+        where: { productId, sizeId },
+        include: { product: true, size: true },
       });
-
       if (!productSize) {
         throw new Error(
           `Kombinasi produk-ukuran tidak ditemukan: ${productId} - ${sizeId}`
         );
       }
-
-      // Update stok pada ProductSize
-      // Jika isCreate true (transaksi baru), kurangi stok
-      // Jika isCreate false (hapus transaksi), tambah stok
+      const oldQuantity = productSize.quantity;
       const newQuantity = isCreate
-        ? productSize.quantity - quantity
-        : productSize.quantity + quantity;
-
+        ? oldQuantity - quantity
+        : oldQuantity + quantity;
       if (newQuantity < 0) {
         throw new Error("Stok tidak mencukupi");
       }
-
       await tx.productSize.update({
         where: { id: productSize.id },
         data: { quantity: newQuantity },
       });
-
-      // Update total stok pada produk
       await updateProductTotalStock(tx, productId);
+      if (userId) {
+        const actionDetail = isCreate ? "Penjualan" : "Pembatalan Penjualan";
+        await auditLogRepository.createLog({
+          userId,
+          action: "UPDATE",
+          entity: "ProductSize",
+          entityId: productSize.id,
+          changes: {
+            before: { quantity: oldQuantity },
+            after: { quantity: newQuantity },
+            details: `${actionDetail} produk '${productSize.product.nama}' ukuran '${productSize.size.label}'`,
+          },
+        });
+      }
     }
   });
 };
 
 // Fungsi untuk menyinkronkan stok produk dengan jumlah semua quantity pada ProductSize
 export const updateProductTotalStock = async (tx, productId) => {
-  // Hitung total stok dari semua ProductSize terkait
   const result = await tx.productSize.aggregate({
     where: {
       productId,
@@ -196,15 +215,11 @@ export const updateProductTotalStock = async (tx, productId) => {
       quantity: true,
     },
   });
-
   const totalStock = result._sum.quantity || 0;
-
-  // Update stok pada produk
   await tx.product.update({
     where: { id: productId },
     data: { stock: totalStock },
   });
-
   return totalStock;
 };
 
@@ -215,10 +230,8 @@ export const syncAllProductStocks = async () => {
       id: true,
     },
   });
-
   for (const product of products) {
     await updateProductTotalStock(prisma, product.id);
   }
-
   return { success: true, count: products.length };
 };

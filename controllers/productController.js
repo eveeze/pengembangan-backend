@@ -1,12 +1,14 @@
-// controllers/productController.js
 import { validationResult } from "express-validator";
 import * as productRepository from "../repositories/productRepository.js";
 import * as productSizeRepository from "../repositories/productSizeRepository.js";
+// Hapus import auditLogRepository karena sudah tidak digunakan di sini lagi
+// import * as auditLogRepository from "../repositories/auditLogRepository.js"; 
 import { deleteImage } from "../utils/cloudinary.js";
 
 export const getAllProducts = async (req, res) => {
   try {
-    const { search, limit, page, brandId, categoryId, productTypeId } = req.query;
+    const { search, limit, page, brandId, categoryId, productTypeId } =
+      req.query;
 
     const result = await productRepository.getAllProducts({
       search,
@@ -24,17 +26,20 @@ export const getAllProducts = async (req, res) => {
     });
   } catch (error) {
     console.error("Error getAllProducts:", error);
-    return res.status(500).json({ status: "error", message: "Gagal mengambil produk" });
+    return res
+      .status(500)
+      .json({ status: "error", message: "Gagal mengambil produk" });
   }
 };
-
 
 export const getProductById = async (req, res) => {
   try {
     const { id } = req.params;
     const product = await productRepository.getProductById(id);
     if (!product)
-      return res.status(404).json({ status: "error", message: "Produk tidak ditemukan" });
+      return res
+        .status(404)
+        .json({ status: "error", message: "Produk tidak ditemukan" });
 
     return res.status(200).json({
       status: "success",
@@ -43,7 +48,9 @@ export const getProductById = async (req, res) => {
     });
   } catch (error) {
     console.error("Error getProductById:", error);
-    return res.status(500).json({ status: "error", message: "Gagal mengambil detail produk" });
+    return res
+      .status(500)
+      .json({ status: "error", message: "Gagal mengambil detail produk" });
   }
 };
 
@@ -85,7 +92,9 @@ export const createProduct = async (req, res) => {
 
     const nameExists = await productRepository.isProductNameExists(nama);
     if (nameExists)
-      return res.status(400).json({ status: "error", message: "Nama produk sudah digunakan" });
+      return res
+        .status(400)
+        .json({ status: "error", message: "Nama produk sudah digunakan" });
 
     const product = await productRepository.createProduct({
       nama,
@@ -98,7 +107,8 @@ export const createProduct = async (req, res) => {
       image,
       minStock: parseInt(minStock),
       kondisi,
-      stockBatchId: stockBatchId && stockBatchId.trim() !== "" ? stockBatchId : null,
+      stockBatchId:
+        stockBatchId && stockBatchId.trim() !== "" ? stockBatchId : null,
       sizes: sizes.map((s) => ({
         sizeId: s.sizeId,
         quantity: parseInt(s.quantity) || 0,
@@ -112,11 +122,15 @@ export const createProduct = async (req, res) => {
     });
   } catch (error) {
     console.error("Error createProduct:", error);
-    return res.status(500).json({ status: "error", message: "Gagal menambahkan produk" });
+    return res
+      .status(500)
+      .json({ status: "error", message: "Gagal menambahkan produk" });
   }
 };
 
 export const updateProduct = async (req, res) => {
+    // Fungsi ini kembali ke versi sederhana, tanpa logika logging
+    // karena logging sudah ditangani di productSizeRepository
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty())
@@ -136,50 +150,57 @@ export const updateProduct = async (req, res) => {
         .json({ status: "error", message: "Produk tidak ditemukan" });
 
     const {
-      nama = existing.nama,
-      deskripsi = existing.deskripsi,
-      hargaBeli = existing.hargaBeli,
-      hargaJual = existing.hargaJual,
-      categoryId = existing.categoryId,
-      brandId = existing.brandId,
-      productTypeId = existing.productTypeId,
-      minStock = existing.minStock,
-      kondisi = existing.kondisi,
-      stockBatchId = existing.stockBatchId,
-      sizes = [], // Perhatikan: jika sizes disediakan, kita akan memperbarui semua ukuran
+      nama,
+      deskripsi,
+      hargaBeli,
+      hargaJual,
+      categoryId,
+      brandId,
+      productTypeId,
+      minStock,
+      kondisi,
+      stockBatchId,
     } = req.body;
+
+    let sizes = req.body.sizes;
+    if (typeof sizes === "string") {
+        try {
+            sizes = JSON.parse(sizes);
+        } catch(e) {
+            sizes = undefined;
+        }
+    }
 
     const image = req.file?.path || existing.image;
     if (req.file?.path && existing.image) await deleteImage(existing.image);
 
-    // Periksa apakah nama produk sudah digunakan (kecuali oleh produk ini sendiri)
-    if (nama !== existing.nama) {
+    if (nama && nama !== existing.nama) {
       const nameExists = await productRepository.isProductNameExists(nama, id);
       if (nameExists)
         return res
           .status(400)
           .json({ status: "error", message: "Nama produk sudah digunakan" });
     }
-
+    
+    // Perhatikan: userId TIDAK perlu dilewatkan lagi ke updateProduct
     const updated = await productRepository.updateProduct(id, {
       nama,
       deskripsi,
-      hargaBeli: parseFloat(hargaBeli),
-      hargaJual: parseFloat(hargaJual),
-      categoryId: parseInt(categoryId),
-      brandId: parseInt(brandId),
+      hargaBeli: hargaBeli ? parseFloat(hargaBeli) : undefined,
+      hargaJual: hargaJual ? parseFloat(hargaJual) : undefined,
+      categoryId: categoryId ? parseInt(categoryId) : undefined,
+      brandId: brandId ? parseInt(brandId) : undefined,
       productTypeId,
       image,
-      minStock: parseInt(minStock),
+      minStock: minStock ? parseInt(minStock) : undefined,
       kondisi,
       stockBatchId,
-      sizes:
-        sizes.length > 0
-          ? sizes.map((s) => ({
-              sizeId: s.sizeId,
-              quantity: parseInt(s.quantity) || 0,
-            }))
-          : undefined,
+      sizes: sizes
+        ? sizes.map((s) => ({
+            sizeId: s.sizeId,
+            quantity: parseInt(s.quantity) || 0,
+          }))
+        : undefined,
     });
 
     return res
@@ -220,7 +241,7 @@ export const deleteProduct = async (req, res) => {
   }
 };
 
-// Fungsi tambahan untuk manajemen stok dan ukuran
+// --- Fungsi tambahan untuk manajemen stok dan ukuran ---
 
 export const getLowStockProducts = async (req, res) => {
   try {
@@ -232,52 +253,42 @@ export const getLowStockProducts = async (req, res) => {
     });
   } catch (error) {
     console.error("Error getLowStockProducts:", error);
-    return res
-      .status(500)
-      .json({
-        status: "error",
-        message: "Gagal mengambil produk dengan stok rendah",
-      });
+    return res.status(500).json({
+      status: "error",
+      message: "Gagal mengambil produk dengan stok rendah",
+    });
   }
 };
 
+// =================================================================
+// --- MULAI PERUBAHAN DI SINI ---
+// =================================================================
 export const addProductSize = async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty())
-      return res
-        .status(400)
-        .json({
-          status: "error",
-          message: "Validasi gagal",
-          errors: errors.array(),
-        });
+      return res.status(400).json({ status: "error", message: "Validasi gagal", errors: errors.array() });
 
     const { id } = req.params;
     const { sizeId, quantity } = req.body;
+    const userId = req.user.id; // Ambil ID user
 
-    // Cek apakah produk ada
     const product = await productRepository.getProductById(id);
     if (!product)
-      return res
-        .status(404)
-        .json({ status: "error", message: "Produk tidak ditemukan" });
+      return res.status(404).json({ status: "error", message: "Produk tidak ditemukan" });
 
-    // Cek apakah kombinasi produk-ukuran sudah ada
     const exists = await productSizeRepository.isProductSizeExists(id, sizeId);
     if (exists)
-      return res
-        .status(400)
-        .json({
-          status: "error",
-          message: "Ukuran sudah ada untuk produk ini",
-        });
+      return res.status(400).json({ status: "error", message: "Ukuran sudah ada untuk produk ini" });
 
-    const result = await productSizeRepository.createProductSize({
-      productId: id,
-      sizeId,
-      quantity: parseInt(quantity) || 0,
-    });
+    const result = await productSizeRepository.createProductSize(
+      {
+        productId: id,
+        sizeId,
+        quantity: parseInt(quantity) || 0,
+      },
+      userId // Lewatkan userId ke repository
+    );
 
     return res.status(201).json({
       status: "success",
@@ -286,9 +297,7 @@ export const addProductSize = async (req, res) => {
     });
   } catch (error) {
     console.error("Error addProductSize:", error);
-    return res
-      .status(500)
-      .json({ status: "error", message: "Gagal menambahkan ukuran produk" });
+    return res.status(500).json({ status: "error", message: "Gagal menambahkan ukuran produk" });
   }
 };
 
@@ -296,42 +305,22 @@ export const updateProductSize = async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty())
-      return res
-        .status(400)
-        .json({
-          status: "error",
-          message: "Validasi gagal",
-          errors: errors.array(),
-        });
+      return res.status(400).json({ status: "error", message: "Validasi gagal", errors: errors.array() });
 
     const { id, sizeId } = req.params;
     const { quantity } = req.body;
+    const userId = req.user.id; // Ambil ID user
 
-    // Cek apakah produk ada
-    const product = await productRepository.getProductById(id);
-    if (!product)
-      return res
-        .status(404)
-        .json({ status: "error", message: "Produk tidak ditemukan" });
-
-    // Cari ProductSize
-    const productSize = await productSizeRepository.getProductSizeStock(
-      id,
-      sizeId
-    );
+    const productSize = await productSizeRepository.getProductSizeStock(id, sizeId);
     if (!productSize)
-      return res
-        .status(404)
-        .json({
-          status: "error",
-          message: "Ukuran tidak ditemukan untuk produk ini",
-        });
+      return res.status(404).json({ status: "error", message: "Ukuran tidak ditemukan untuk produk ini" });
 
     const result = await productSizeRepository.updateProductSize(
       productSize.id,
       {
         quantity: parseInt(quantity) || 0,
-      }
+      },
+      userId // Lewatkan userId ke repository
     );
 
     return res.status(200).json({
@@ -341,40 +330,23 @@ export const updateProductSize = async (req, res) => {
     });
   } catch (error) {
     console.error("Error updateProductSize:", error);
-    return res
-      .status(500)
-      .json({
-        status: "error",
-        message: "Gagal memperbarui stok ukuran produk",
-      });
+    return res.status(500).json({ status: "error", message: "Gagal memperbarui stok ukuran produk" });
   }
 };
 
 export const deleteProductSize = async (req, res) => {
   try {
     const { id, sizeId } = req.params;
+    const userId = req.user.id; // Ambil ID user
 
-    // Cek apakah produk ada
-    const product = await productRepository.getProductById(id);
-    if (!product)
-      return res
-        .status(404)
-        .json({ status: "error", message: "Produk tidak ditemukan" });
-
-    // Cari ProductSize
-    const productSize = await productSizeRepository.getProductSizeStock(
-      id,
-      sizeId
-    );
+    const productSize = await productSizeRepository.getProductSizeStock(id, sizeId);
     if (!productSize)
-      return res
-        .status(404)
-        .json({
-          status: "error",
-          message: "Ukuran tidak ditemukan untuk produk ini",
-        });
+      return res.status(404).json({ status: "error", message: "Ukuran tidak ditemukan untuk produk ini" });
 
-    await productSizeRepository.deleteProductSize(productSize.id);
+    await productSizeRepository.deleteProductSize(
+        productSize.id, 
+        userId // Lewatkan userId ke repository
+    );
 
     return res.status(200).json({
       status: "success",
@@ -382,11 +354,13 @@ export const deleteProductSize = async (req, res) => {
     });
   } catch (error) {
     console.error("Error deleteProductSize:", error);
-    return res
-      .status(500)
-      .json({ status: "error", message: "Gagal menghapus ukuran produk" });
+    return res.status(500).json({ status: "error", message: "Gagal menghapus ukuran produk" });
   }
 };
+// =================================================================
+// --- AKHIR PERUBAHAN ---
+// =================================================================
+
 
 export const syncAllProductStocks = async (req, res) => {
   try {

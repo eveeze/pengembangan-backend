@@ -26,6 +26,7 @@ model User {
   transactions             Transaction[] // Relasi ke transaksi yang diproses pengguna
   createdAt                DateTime      @default(now()) // Waktu pembuatan data
   updatedAt                DateTime      @updatedAt // Waktu terakhir update data
+  auditLogs                AuditLog[] // Tambahkan ini
 
   // Fungsi: Pengelolaan user admin/staff yang dapat melakukan transaksi
 }
@@ -234,4 +235,26 @@ model TransactionItem {
 
   @@index([transactionId]) // Index untuk mempercepat pencarian berdasarkan transaksi
   @@index([productId, sizeId]) // Index gabungan
+}
+
+// Tambahkan Enum ini
+enum AuditActionType {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+// Tambahkan Model baru ini
+model AuditLog {
+  id        String          @id @default(uuid())
+  user      User            @relation(fields: [userId], references: [id])
+  userId    Int
+  action    AuditActionType // CREATE, UPDATE, DELETE
+  entity    String          // Nama model yg diubah, misal: "ProductSize"
+  entityId  String          // ID dari record yg diubah
+  changes   Json            // Menyimpan detail perubahan (sebelum & sesudah)
+  createdAt DateTime        @default(now())
+
+  @@index([userId])
+  @@index([entity, entityId])
 }

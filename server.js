@@ -16,6 +16,8 @@ import customerRoutes from "./routes/customerRoutes.js";
 import transactionRoutes from "./routes/transactionRoutes.js";
 import transactionItemRoutes from "./routes/transactionItemRoutes.js";
 import graphRoutes from "./routes/graphRoutes.js";
+import auditLogRoutes from "./routes/auditLogRoutes.js";
+
 dotenv.config();
 
 const app = express();
@@ -35,6 +37,7 @@ app.use("/api/customer", customerRoutes);
 app.use("/api/transaction", transactionRoutes);
 app.use("/api/transaction-item", transactionItemRoutes);
 app.use("/api/graph", graphRoutes);
+app.use("/api/audit-log", auditLogRoutes);
 
 
 const PORT = process.env.PORT || 5000;

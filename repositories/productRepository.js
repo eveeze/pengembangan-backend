@@ -139,31 +139,23 @@ export const createProduct = async (data) => {
   });
 };
 
-// Fungsi untuk mengupdate produk
+// Fungsi untuk mengupdate produk (KEMBALI KE VERSI ASLI)
 export const updateProduct = async (id, data) => {
   const { sizes, ...productData } = data;
 
   return prisma.$transaction(async (tx) => {
-    // Update data produk (tanpa mengubah stok)
-    const product = await tx.product.update({
+    // Update data produk
+    await tx.product.update({
       where: { id },
       data: productData,
-      include: {
-        category: true,
-        brand: true,
-        productType: true,
-        stockBatch: true,
-      },
     });
 
     // Jika sizes disediakan, update stok ukuran
-    if (sizes && sizes.length > 0) {
-      // Hapus semua ukuran yang ada
+    if (sizes) { // Cek 'sizes' tidak undefined
       await tx.productSize.deleteMany({
         where: { productId: id },
       });
 
-      // Tambahkan ukuran baru
       for (const size of sizes) {
         await tx.productSize.create({
           data: {
@@ -178,7 +170,7 @@ export const updateProduct = async (id, data) => {
     // Update total stok pada produk
     await updateProductTotalStock(tx, id);
 
-    // Ambil produk lengkap dengan ukuran
+    // Ambil produk lengkap
     return tx.product.findUnique({
       where: { id },
       include: {

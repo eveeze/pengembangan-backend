@@ -66,6 +66,10 @@ export const getProductSizeStock = async (req, res) => {
   }
 };
 
+// =================================================================
+// --- MULAI PERUBAHAN DI SINI ---
+// =================================================================
+
 export const createProductSize = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -73,6 +77,8 @@ export const createProductSize = async (req, res) => {
       return res.status(400).json({ status: "error", errors: errors.array() });
 
     const { productId, sizeId, quantity = 0 } = req.body;
+    const userId = req.user.id; // <-- Ambil userId dari token
+
     const exists = await productSizeRepository.isProductSizeExists(
       productId,
       sizeId
@@ -83,11 +89,14 @@ export const createProductSize = async (req, res) => {
         message: "Kombinasi produk dan ukuran sudah ada",
       });
 
-    const data = await productSizeRepository.createProductSize({
-      productId,
-      sizeId,
-      quantity: parseInt(quantity),
-    });
+    const data = await productSizeRepository.createProductSize(
+      {
+        productId,
+        sizeId,
+        quantity: parseInt(quantity),
+      },
+      userId // <-- Lewatkan userId ke repository
+    );
     return res.status(201).json({
       status: "success",
       message: "Stok ukuran berhasil ditambahkan",
@@ -109,6 +118,9 @@ export const updateProductSize = async (req, res) => {
 
     const { id } = req.params;
     const { quantity } = req.body;
+    const userId = req.user.id; // <-- Ambil userId dari token
+
+    console.log(`[Controller] Menerima permintaan update untuk ProductSize ID: ${id} oleh User ID: ${userId}`);
 
     const existing = await productSizeRepository.getProductSizeById(id);
     if (!existing)
@@ -116,9 +128,13 @@ export const updateProductSize = async (req, res) => {
         .status(404)
         .json({ status: "error", message: "Data tidak ditemukan" });
 
-    const data = await productSizeRepository.updateProductSize(id, {
-      quantity: parseInt(quantity),
-    });
+    const data = await productSizeRepository.updateProductSize(
+      id,
+      {
+        quantity: parseInt(quantity),
+      },
+      userId // <-- Lewatkan userId ke repository
+    );
     return res.status(200).json({
       status: "success",
       message: "Stok berhasil diperbarui",
@@ -135,13 +151,18 @@ export const updateProductSize = async (req, res) => {
 export const deleteProductSize = async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.user.id; // <-- Ambil userId dari token
+
     const existing = await productSizeRepository.getProductSizeById(id);
     if (!existing)
       return res
         .status(404)
         .json({ status: "error", message: "Data tidak ditemukan" });
 
-    await productSizeRepository.deleteProductSize(id);
+    await productSizeRepository.deleteProductSize(
+        id, 
+        userId // <-- Lewatkan userId ke repository
+    );
     return res
       .status(200)
       .json({ status: "success", message: "Data berhasil dihapus" });
