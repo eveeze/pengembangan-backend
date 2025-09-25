@@ -28,6 +28,6 @@ router.put(
 );
 router.delete("/:id", transactionController.deleteTransaction);
 router.get("/report/sales", transactionController.getSalesReport);
-router.get("/report/profit", transactionController.getProfitReport); // Tambahkan endpoint untuk laporan profit
+router.get("/report/profit", transactionController.getProfitReport);
 
 export default router;
