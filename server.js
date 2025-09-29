@@ -2,6 +2,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import os from "os"; // <-- Impor baru untuk mendapatkan info jaringan
 
 // import routes
 import userRoutes from "./routes/authRoutes.js";
@@ -17,6 +18,7 @@ import transactionRoutes from "./routes/transactionRoutes.js";
 import transactionItemRoutes from "./routes/transactionItemRoutes.js";
 import graphRoutes from "./routes/graphRoutes.js";
 import auditLogRoutes from "./routes/auditLogRoutes.js";
+import reportRoutes from "./routes/reportRoutes.js";
 
 dotenv.config();
 
@@ -30,7 +32,7 @@ app.use("/api/product-types", productTypeRoutes);
 app.use("/api/category", categoryRoutes);
 app.use("/api/brand", brandRoutes);
 app.use("/api/size", sizeRoutes);
-app.use("/api/product-size", productSizeRoutes);
+app.use("/api/product-size", productSizeRoutes); // Seharusnya product-sizes
 app.use("/api/product", productRoutes);
 app.use("/api/stock-batch", stockBatchRoutes);
 app.use("/api/customer", customerRoutes);
@@ -38,17 +40,35 @@ app.use("/api/transaction", transactionRoutes);
 app.use("/api/transaction-item", transactionItemRoutes);
 app.use("/api/graph", graphRoutes);
 app.use("/api/audit-log", auditLogRoutes);
-
+app.use("/api/reports", reportRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.get("/", (req, res) => {
   res.send("WELCOME TO APL SHOES SMARTSTOCK");
 });
 
-app.listen(PORT, () => {
-  console.log(`server sedang berjalan di port ${PORT}`);
-  console.log('✅ Email User:', process.env.EMAIL_USER);
-  console.log('✅ Email Password:', process.env.EMAIL_PASSWORD ? 'Loaded' : 'Not loaded');
+// --- BLOK app.listen YANG BARU ---
+app.listen(PORT, "0.0.0.0", () => {
+  const networkInterfaces = os.networkInterfaces();
+  let networkAddress = null;
+
+  // Cari alamat IPv4 yang aktif di jaringan
+  for (const name of Object.keys(networkInterfaces)) {
+    for (const net of networkInterfaces[name]) {
+      if (net.family === "IPv4" && !net.internal) {
+        networkAddress = net.address;
+        break;
+      }
+    }
+    if (networkAddress) break;
+  }
+
+  console.log(`🚀 Server berjalan di http://localhost:${PORT}`);
+  if (networkAddress) {
+    console.log(`   atau di jaringan Anda: http://${networkAddress}:${PORT}`);
+  }
+    console.log('✅ Email User:', process.env.EMAIL_USER);
+    console.log('✅ Email Password:', process.env.EMAIL_PASSWORD ? 'Loaded' : 'Not loaded');
 });
 
 export default app;
