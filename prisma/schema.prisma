@@ -15,7 +15,7 @@ datasource db {
 model User {
   id                       Int           @id @default(autoincrement()) // ID unik pengguna (auto-increment)
   nama                     String // Nama pengguna
-  email                    String        @unique // Email pengguna (harus unik)
+  email                    String?
   password                 String // Password terenkripsi
   isVerified               Boolean       @default(false) // Status verifikasi akun
   isResetPasswordVerified  Boolean // Status verifikasi reset password
