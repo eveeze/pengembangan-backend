@@ -15,7 +15,7 @@ datasource db {
 model User {
   id                       Int           @id @default(autoincrement()) // ID unik pengguna (auto-increment)
   nama                     String // Nama pengguna
-  email                    String?
+  email                    String? @unique // Email pengguna (harus unik)
   password                 String // Password terenkripsi
   isVerified               Boolean       @default(false) // Status verifikasi akun
   isResetPasswordVerified  Boolean // Status verifikasi reset password
@@ -179,16 +179,14 @@ enum PaymentMethod {
 model Customer {
   id           String        @id @default(uuid()) // ID unik pelanggan (UUID)
   nama         String // Nama pelanggan
-  email        String?       @unique // Email pelanggan (opsional, harus unik)
   phone        String? // Nomor telepon pelanggan (opsional)
-  alamat       String? // Alamat pelanggan (opsional)
   transactions Transaction[] // Relasi ke transaksi pelanggan
   createdAt    DateTime      @default(now()) // Waktu pembuatan data
   updatedAt    DateTime      @updatedAt // Waktu terakhir update data
 
   // Fungsi: Menyimpan data pelanggan untuk transaksi dan analisis
 
-  @@index([email, phone]) // Index gabungan
+  @@index([phone]) // Index gabungan
 }
 
 // Model Transaction: Menyimpan data transaksi penjualan
