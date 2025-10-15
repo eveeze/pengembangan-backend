@@ -1,8 +1,6 @@
 import { validationResult } from "express-validator";
 import * as productRepository from "../repositories/productRepository.js";
 import * as productSizeRepository from "../repositories/productSizeRepository.js";
-// Hapus import auditLogRepository karena sudah tidak digunakan di sini lagi
-// import * as auditLogRepository from "../repositories/auditLogRepository.js"; 
 import { deleteImage } from "../utils/cloudinary.js";
 
 export const getAllProducts = async (req, res) => {
@@ -357,9 +355,6 @@ export const deleteProductSize = async (req, res) => {
     return res.status(500).json({ status: "error", message: "Gagal menghapus ukuran produk" });
   }
 };
-// =================================================================
-// --- AKHIR PERUBAHAN ---
-// =================================================================
 
 
 export const syncAllProductStocks = async (req, res) => {
